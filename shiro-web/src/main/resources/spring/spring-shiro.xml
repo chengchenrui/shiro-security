@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="shiroFilter"
+          class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <!-- 没有登录的用户请求需要登录的页面时自动跳转到登录页面，不是必须的属性，不输入地址的话会自动寻找项目web项目的根目录下的”/login.jsp”页面 -->
+        <property name="loginUrl" value="login.html"/>
+        <!-- 没有权限默认跳转的页面 -->
+        <property name="unauthorizedUrl" value="403.html"/>
+        <property name="filterChainDefinitions">
+            <!-- 自上到下 --><!-- anon:表示可以匿名使用。 authc:表示需要认证(登录)才能使用，没有参数.  roles["admin,guest"],每个参数通过才算通过，user表示必须存在用户 -->
+            <value>
+                /login.html = anon
+                /subLogin = anon
+                /testRoles = roles["admin"]
+                /testRoles1 = rolesOr["admin","admin1"]
+                /testPerms = perms["user:delete"]
+                /testPerms1 = perms["user:delete","user:updata"]
+                /* = authc
+            </value>
+        </property>
+        <property name="filters">
+            <map>
+                <entry key="rolesOr" value-ref="rolesOrFilter"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- 自定义权限filter -->
+    <bean id="rolesOrFilter" class="com.cheng.shiro.filter.RolesOrFilter"/>
+
+    <!-- 创建SecurityManager对象 -->
+    <bean id="securityManager"
+          class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="realm"/>
+        <property name="sessionManager" ref="sessionManager"/>
+        <property name="cacheManager" ref="cacheManager"/>
+        <property name="rememberMeManager" ref="cookieRememberMeManager"/>
+    </bean>
+
+    <!-- 自定义Realm -->
+    <bean id="realm" class="com.cheng.shiro.realm.CustomRealm">
+        <property name="credentialsMatcher" ref="credentialsMatcher"/>
+    </bean>
+
+    <bean id="credentialsMatcher" class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+        <property name="hashAlgorithmName" value="md5"/>
+        <property name="hashIterations" value="1"/>
+    </bean>
+
+    <!-- 自定义SessionManager -->
+    <bean class="com.cheng.shiro.session.CustomSessionManage" id="sessionManager">
+        <property name="sessionDAO" ref="redisSessionDao"/>
+    </bean>
+
+    <bean class="com.cheng.shiro.session.RedisSessionDao" id="redisSessionDao"/>
+
+    <bean class="com.cheng.shiro.cache.RedisCacheManager" id="cacheManager"/>
+
+    <!-- 自动登录 -->
+    <bean class="org.apache.shiro.web.mgt.CookieRememberMeManager" id="cookieRememberMeManager">
+        <property name="cookie" ref="cookie"/>
+    </bean>
+
+    <bean class="org.apache.shiro.web.servlet.SimpleCookie" id="cookie">
+        <constructor-arg name="name" value="rememberMe"/>
+        <property name="maxAge" value="20000000"/>
+    </bean>
+</beans>
